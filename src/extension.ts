@@ -2,19 +2,24 @@ import * as sourcegraph from 'sourcegraph'
 
 export const stringAtPosition = (text: string, position: sourcegraph.Position): string | null => {
     const line = text.split(`\n`)[position.line]
-    const re = /("[^"]+"|'[^']+')/g
-    const matches = line.match(re)
-    const match =
-        matches &&
-        matches.find(s => {
-            const idx = line.indexOf(s)
-            return idx < position.character && idx + s.length > position.character
-        })
-    if (match) {
-        return match.slice(1, match.length - 1)
-    } else {
+    let quote = null
+    let stringEnd = -1
+    for (let i = position.character; i < line.length; i++) {
+        if (line[i] === '"' || line[i] === "'") {
+            quote = line[i]
+            stringEnd = i
+            break
+        }
+    }
+    if (!quote) {
         return null
     }
+    for (let i = position.character - 1; i >= 0; i--) {
+        if (line[i] === quote) {
+            return line.slice(i + 1, stringEnd)
+        }
+    }
+    return null
 }
 
 const getQueryVars = (s: string, repo?: string): { query: string } => {
@@ -62,7 +67,7 @@ interface ResponseObject {
 
 async function findStringReferences(s: string, repo?: string): Promise<sourcegraph.Location[]> {
     const response: ResponseObject = await sourcegraph.commands.executeCommand(
-        'queryGraph',
+        'queryGraphQL',
         GRAPHQL_QUERY,
         getQueryVars(s, repo)
     )
