@@ -1,6 +1,6 @@
 {
   "name": "sourcegraph-string-references",
-  "version": "1.0.11",
+  "version": "1.0.12",
   "description": "A Sourcegraph extension allowing to find references to a string literal",
   "main": "dist/extension.js",
   "title": "String Reference Finder",
