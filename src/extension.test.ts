@@ -2,7 +2,9 @@ const intercept = require('intercept-require')
 intercept(
     (moduleExport: {}, info: { moduleId: string }): {} => {
         if (info.moduleId === 'sourcegraph') {
-            return {}
+            return {
+                ...moduleExport,
+            }
         }
         return moduleExport
     }

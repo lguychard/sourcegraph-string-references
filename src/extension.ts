@@ -2,10 +2,16 @@ import 'babel-polyfill'
 import * as sourcegraph from 'sourcegraph'
 import { parseUri } from './util'
 
-export const stringAtPosition = (
-    text: string,
-    position: sourcegraph.Position
-): { value: string; range: sourcegraph.Range } | null => {
+interface StringAtPositionResult {
+    value: string
+    position: {
+        line: number
+        start: number
+        end: number
+    }
+}
+
+export const stringAtPosition = (text: string, position: sourcegraph.Position): StringAtPositionResult | null => {
     const line = text.split(`\n`)[position.line]
     let quote = null
     let stringEnd = -1
@@ -24,10 +30,11 @@ export const stringAtPosition = (
             const stringStart = i + 1
             return {
                 value: line.slice(stringStart, stringEnd),
-                range: new sourcegraph.Range(
-                    new sourcegraph.Position(position.line, stringStart),
-                    new sourcegraph.Position(position.line, stringEnd)
-                ),
+                position: {
+                    line: position.line,
+                    start: stringStart,
+                    end: stringEnd,
+                },
             }
         }
     }
@@ -48,9 +55,13 @@ const GRAPHQL_QUERY = `query Search($query: String!) {
             results {
                 __typename
                 ... on FileMatch {
+                    repository {
+                        name
+                    }
                     file {
-                        externalURLs {
-                            url
+                        path
+                        commit {
+                            oid
                         }
                     }
                     lineMatches {
@@ -68,10 +79,14 @@ interface ResponseObject {
         search: {
             results: {
                 results: {
+                    repository: {
+                        name: string
+                    }
                     file: {
-                        externalURLs: {
-                            url: string
-                        }[]
+                        path: string
+                        commit: {
+                            oid: string
+                        }
                     }
                     lineMatches: {
                         lineNumber: number
@@ -91,13 +106,13 @@ async function findStringReferences(s: string, repo?: string): Promise<sourcegra
     )
     const { results } = response.data.search
     const locations: sourcegraph.Location[] = []
-    results.results.forEach(({ file, lineMatches }) => {
+    results.results.forEach(({ file, repository, lineMatches }) => {
         lineMatches.forEach(({ lineNumber, offsetAndLengths }) => {
             offsetAndLengths.forEach(([offset, length]) => {
                 const start = new sourcegraph.Position(lineNumber, offset)
                 const end = new sourcegraph.Position(lineNumber, offset + length)
                 const range = new sourcegraph.Range(start, end)
-                const uri = new sourcegraph.URI(file.externalURLs[0].url)
+                const uri = new sourcegraph.URI(`git://${repository.name}?${file.commit.oid}#${file.path}`)
                 const location = new sourcegraph.Location(uri, range)
                 locations.push(location)
             })
@@ -113,8 +128,12 @@ export function activate(): void {
             if (hoveredString) {
                 return {
                     contents: {
-                        value: '\n    string',
-                        range: hoveredString.range,
+                        value: `**string literal** \`"${hoveredString.value}"\``,
+                        range: new sourcegraph.Range(
+                            new sourcegraph.Position(hoveredString.position.line, hoveredString.position.start),
+                            new sourcegraph.Position(hoveredString.position.line, hoveredString.position.end)
+                        ),
+                        kind: sourcegraph.MarkupKind.Markdown,
                     },
                 }
             }
