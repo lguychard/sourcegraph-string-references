@@ -1,6 +1,10 @@
 import * as sourcegraph from 'sourcegraph'
+import 'babel-polyfill'
 
-export const stringAtPosition = (text: string, position: sourcegraph.Position): string | null => {
+export const stringAtPosition = (
+    text: string,
+    position: sourcegraph.Position
+): { value: string; range: sourcegraph.Range } | null => {
     const line = text.split(`\n`)[position.line]
     let quote = null
     let stringEnd = -1
@@ -16,21 +20,28 @@ export const stringAtPosition = (text: string, position: sourcegraph.Position): 
     }
     for (let i = position.character - 1; i >= 0; i--) {
         if (line[i] === quote) {
-            return line.slice(i + 1, stringEnd)
+            const stringStart = i + 1
+            return {
+                value: line.slice(stringStart, stringEnd),
+                range: new sourcegraph.Range(
+                    new sourcegraph.Position(position.line, stringStart),
+                    new sourcegraph.Position(position.line, stringEnd)
+                ),
+            }
         }
     }
     return null
 }
 
 const getQueryVars = (s: string, repo?: string): { query: string } => {
-    const re = `(\"${s}\"|'${s}')` // avoid searching for "query' / 'query"
+    const re = `(\\"${s}\\"|'${s}')` // avoid searching for "query' / 'query"
     const repositoryFilter = repo ? ` r:${repo}` : ''
     return {
         query: re + repositoryFilter,
     }
 }
 
-const GRAPHQL_QUERY = `{
+const GRAPHQL_QUERY = `query Search($query: String!) {
     search(query: $query) {
         results {
             results {
@@ -53,14 +64,16 @@ interface ResponseObject {
     data: {
         search: {
             results: {
-                file: {
-                    url: string
-                }
-                lineMatches: {
-                    lineNumber: number
-                    offsetAndLengths: [number, number][]
+                results: {
+                    file: {
+                        url: string
+                    }
+                    lineMatches: {
+                        lineNumber: number
+                        offsetAndLengths: [number, number][]
+                    }[]
                 }[]
-            }[]
+            }
         }
     }
 }
@@ -73,7 +86,7 @@ async function findStringReferences(s: string, repo?: string): Promise<sourcegra
     )
     const { results } = response.data.search
     const locations: sourcegraph.Location[] = []
-    results.forEach(({ file, lineMatches }) => {
+    results.results.forEach(({ file, lineMatches }) => {
         lineMatches.forEach(({ lineNumber, offsetAndLengths }) => {
             offsetAndLengths.forEach(([offset, length]) => {
                 const start = new sourcegraph.Position(lineNumber, offset)
@@ -89,6 +102,21 @@ async function findStringReferences(s: string, repo?: string): Promise<sourcegra
 }
 
 export function activate(): void {
+    sourcegraph.languages.registerHoverProvider(['*'], {
+        provideHover: (document, position) => {
+            const hoveredString = stringAtPosition(document.text, position)
+            if (hoveredString) {
+                return {
+                    contents: {
+                        value: 'string literal',
+                        range: hoveredString.range,
+                    },
+                }
+            }
+            return null
+        },
+    })
+
     sourcegraph.languages.registerReferenceProvider(['*'], {
         provideReferences: async (document, position) => {
             const hoveredString = stringAtPosition(document.text, position)
@@ -101,7 +129,7 @@ export function activate(): void {
             // @todo: check if the instance is private (using sourcegraph.configuration?)
             const isPrivateInstance = false
             if (isPrivateInstance) {
-                return findStringReferences(hoveredString)
+                return findStringReferences(hoveredString.value)
             } else {
                 // If no private instance is setup, the user should provide
                 // a repository to filter the search
@@ -109,7 +137,7 @@ export function activate(): void {
                     const repo = await sourcegraph.app.activeWindow.showInputBox({
                         prompt: 'Repository to search (ex: sourcegraph/sourcegraph)',
                     })
-                    return findStringReferences(hoveredString, repo)
+                    return findStringReferences(hoveredString.value, repo)
                 } else {
                     return null
                 }

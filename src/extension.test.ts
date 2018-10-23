@@ -18,6 +18,6 @@ describe('stringAtPosition', () => {
             line: 1,
             character: 9,
         } as any)
-        assert.equal('over', s)
+        assert.equal('over', s && s.value)
     })
 })
