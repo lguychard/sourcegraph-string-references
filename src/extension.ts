@@ -1,6 +1,6 @@
 import 'babel-polyfill'
 import * as sourcegraph from 'sourcegraph'
-import { parseUri } from './util'
+import { parseUri, memoizeAsync } from './util'
 
 export const stringAtPosition = (
     text: string,
@@ -49,7 +49,7 @@ const GRAPHQL_QUERY = `query Search($query: String!) {
                 __typename
                 ... on FileMatch {
                     file {
-                        externalUrls {
+                        externalURLs {
                             url
                         }
                     }
@@ -106,6 +106,8 @@ async function findStringReferences(s: string, repo?: string): Promise<sourcegra
     return locations
 }
 
+const findStringReferencesMemo = memoizeAsync(findStringReferences, s => s)
+
 export function activate(): void {
     sourcegraph.languages.registerHoverProvider(['*'], {
         provideHover: (document, position) => {
@@ -134,12 +136,12 @@ export function activate(): void {
             // @todo: check if the instance is private (using sourcegraph.configuration?)
             const isPrivateInstance = false
             if (isPrivateInstance) {
-                return findStringReferences(hoveredString.value)
+                return findStringReferencesMemo(hoveredString.value)
             } else {
                 // If no private instance is setup,
                 // limit results to the current repository
                 const repo = parseUri(document.uri).repo
-                return findStringReferences(hoveredString.value, repo)
+                return findStringReferencesMemo(hoveredString.value, repo)
             }
         },
     })
