@@ -1,5 +1,6 @@
-import * as sourcegraph from 'sourcegraph'
 import 'babel-polyfill'
+import * as sourcegraph from 'sourcegraph'
+import { parseUri } from './util'
 
 export const stringAtPosition = (
     text: string,
@@ -48,7 +49,9 @@ const GRAPHQL_QUERY = `query Search($query: String!) {
                 __typename
                 ... on FileMatch {
                     file {
-                        url
+                        externalUrls {
+                            url
+                        }
                     }
                     lineMatches {
                         lineNumber
@@ -66,7 +69,9 @@ interface ResponseObject {
             results: {
                 results: {
                     file: {
-                        url: string
+                        externalUrls: {
+                            url: string
+                        }[]
                     }
                     lineMatches: {
                         lineNumber: number
@@ -92,7 +97,7 @@ async function findStringReferences(s: string, repo?: string): Promise<sourcegra
                 const start = new sourcegraph.Position(lineNumber, offset)
                 const end = new sourcegraph.Position(lineNumber, offset + length)
                 const range = new sourcegraph.Range(start, end)
-                const uri = new sourcegraph.URI(file.url)
+                const uri = new sourcegraph.URI(file.externalUrls[0].url)
                 const location = new sourcegraph.Location(uri, range)
                 locations.push(location)
             })
@@ -108,7 +113,7 @@ export function activate(): void {
             if (hoveredString) {
                 return {
                     contents: {
-                        value: 'string literal',
+                        value: '\n    string',
                         range: hoveredString.range,
                     },
                 }
@@ -131,16 +136,10 @@ export function activate(): void {
             if (isPrivateInstance) {
                 return findStringReferences(hoveredString.value)
             } else {
-                // If no private instance is setup, the user should provide
-                // a repository to filter the search
-                if (sourcegraph.app.activeWindow) {
-                    const repo = await sourcegraph.app.activeWindow.showInputBox({
-                        prompt: 'Repository to search (ex: sourcegraph/sourcegraph)',
-                    })
-                    return findStringReferences(hoveredString.value, repo)
-                } else {
-                    return null
-                }
+                // If no private instance is setup,
+                // limit results to the current repository
+                const repo = parseUri(document.uri).repo
+                return findStringReferences(hoveredString.value, repo)
             }
         },
     })
