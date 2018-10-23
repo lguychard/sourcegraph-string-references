@@ -9,6 +9,9 @@
     "type": "git",
     "url": "https://github.com/lguychard/sourcegraph-string-references"
   },
+  "activationEvents": [
+    "*"
+  ],
   "scripts": {
     "test": "mocha --require ts-node/register --inline-diffs --reporter spec --recursive ./src/**/*.test.ts",
     "tslint": "tslint -p tsconfig.json -c tslint.json src/**/*.ts",
