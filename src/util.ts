@@ -20,29 +20,3 @@ export function parseUri(uri: string): { repo: string; version: string; path: st
         path: path,
     }
 }
-
-// from https://github.com/sourcegraph/sourcegraph-langserver-http/blob/5feb512c8bb289ab49d1f0172935fbf3fd2c8489/src/util/memoizeAsync.ts
-/**
- * Creates a function that memoizes the async result of func. If the Promise is rejected, the result will not be
- * cached.
- *
- * @param toKey etermines the cache key for storing the result based on the first argument provided to the memoized
- * function
- */
-export function memoizeAsync<P, T>(
-    func: (params: P) => Promise<T>,
-    toKey: (params: P) => string
-): (params: P) => Promise<T> {
-    const cache = new Map<string, Promise<T>>()
-    return (params: P) => {
-        const key = toKey(params)
-        const hit = cache.get(key)
-        if (hit) {
-            return hit
-        }
-        const p = func(params)
-        p.then(null, () => cache.delete(key))
-        cache.set(key, p)
-        return p
-    }
-}

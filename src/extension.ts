@@ -1,6 +1,6 @@
 import 'babel-polyfill'
 import * as sourcegraph from 'sourcegraph'
-import { parseUri, memoizeAsync } from './util'
+import { parseUri } from './util'
 
 export const stringAtPosition = (
     text: string,
@@ -69,7 +69,7 @@ interface ResponseObject {
             results: {
                 results: {
                     file: {
-                        externalUrls: {
+                        externalURLs: {
                             url: string
                         }[]
                     }
@@ -97,7 +97,7 @@ async function findStringReferences(s: string, repo?: string): Promise<sourcegra
                 const start = new sourcegraph.Position(lineNumber, offset)
                 const end = new sourcegraph.Position(lineNumber, offset + length)
                 const range = new sourcegraph.Range(start, end)
-                const uri = new sourcegraph.URI(file.externalUrls[0].url)
+                const uri = new sourcegraph.URI(file.externalURLs[0].url)
                 const location = new sourcegraph.Location(uri, range)
                 locations.push(location)
             })
@@ -105,8 +105,6 @@ async function findStringReferences(s: string, repo?: string): Promise<sourcegra
     })
     return locations
 }
-
-const findStringReferencesMemo = memoizeAsync(findStringReferences, s => s)
 
 export function activate(): void {
     sourcegraph.languages.registerHoverProvider(['*'], {
@@ -136,12 +134,12 @@ export function activate(): void {
             // @todo: check if the instance is private (using sourcegraph.configuration?)
             const isPrivateInstance = false
             if (isPrivateInstance) {
-                return findStringReferencesMemo(hoveredString.value)
+                return findStringReferences(hoveredString.value)
             } else {
                 // If no private instance is setup,
                 // limit results to the current repository
                 const repo = parseUri(document.uri).repo
-                return findStringReferencesMemo(hoveredString.value, repo)
+                return findStringReferences(hoveredString.value, repo)
             }
         },
     })
