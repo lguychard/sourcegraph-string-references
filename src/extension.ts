@@ -93,7 +93,8 @@ export function activate(): void {
                 return null
             }
 
-            const isPrivateInstance = sourcegraph.configuration.get().get('instance')
+            // @todo: check if the instance is private (using sourcegraph.configuration?)
+            const isPrivateInstance = false
             if (isPrivateInstance) {
                 return findStringReferences(hoveredString)
             } else {

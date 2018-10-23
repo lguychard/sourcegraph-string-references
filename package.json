@@ -3,6 +3,8 @@
   "version": "1.0.0",
   "description": "A Sourcegraph extension allowing to find references to a string literal",
   "main": "dist/extension.js",
+  "title": "String Reference Finder",
+  "publisher": "lguychard",
   "repository": {
     "type": "git",
     "url": "https://github.com/lguychard/sourcegraph-string-references"
@@ -10,10 +12,10 @@
   "scripts": {
     "test": "mocha --require ts-node/register --inline-diffs --reporter spec --recursive ./src/**/*.test.ts",
     "tslint": "tslint -p tsconfig.json -c tslint.json src/**/*.ts",
-    "build": "tsc -p .",
     "prettier": "prettier '**/*.{js?(on),ts}' --write --list-different",
     "semantic-release": "semantic-release",
-    "publish": "src extensions publish"
+    "sourcegraph:prepublish": "parcel build --out-file dist/extension.js src/extension.ts",
+    "publish": "src extensions publish -extension-id lguychard/string-references"
   },
   "commitlint": {
     "extends": [
