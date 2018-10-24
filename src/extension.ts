@@ -1,90 +1,12 @@
 import 'babel-polyfill'
 import * as sourcegraph from 'sourcegraph'
+import { findStringReferences, isPrivateInstance } from './api'
 import { parseUri, stringAtPosition } from './util'
 
-const queryVariables = (s: string, repo?: string): { query: string } => {
-    const vars = [`(\\"${s}\\"|'${s}')`]
-    if (repo) {
-        vars.push(`r:${repo}`)
-    }
-    return {
-        query: vars.join(' '),
-    }
-}
-
-const GRAPHQL_QUERY = `query Search($query: String!) {
-    search(query: $query) {
-        results {
-            results {
-                __typename
-                ... on FileMatch {
-                    repository {
-                        name
-                    }
-                    file {
-                        path
-                        commit {
-                            oid
-                        }
-                    }
-                    lineMatches {
-                        lineNumber
-                        offsetAndLengths
-                    }
-                }
-            }
-        }
-    }
-}`
-
-interface ResponseObject {
-    data: {
-        search: {
-            results: {
-                results: {
-                    repository: {
-                        name: string
-                    }
-                    file: {
-                        path: string
-                        commit: {
-                            oid: string
-                        }
-                    }
-                    lineMatches: {
-                        lineNumber: number
-                        offsetAndLengths: [number, number][]
-                    }[]
-                }[]
-            }
-        }
-    }
-}
-
-async function findStringReferences(s: string, repo?: string): Promise<sourcegraph.Location[]> {
-    const response: ResponseObject = await sourcegraph.commands.executeCommand(
-        'queryGraphQL',
-        GRAPHQL_QUERY,
-        queryVariables(s, repo)
-    )
-    const { results } = response.data.search
-    const locations: sourcegraph.Location[] = []
-    for (const { file, repository, lineMatches } of results.results) {
-        for (const { lineNumber, offsetAndLengths } of lineMatches) {
-            for (const [offset, length] of offsetAndLengths) {
-                const start = new sourcegraph.Position(lineNumber, offset)
-                const end = new sourcegraph.Position(lineNumber, offset + length)
-                const range = new sourcegraph.Range(start, end)
-                const uri = new sourcegraph.URI(`git://${repository.name}?${file.commit.oid}#${file.path}`)
-                const location = new sourcegraph.Location(uri, range)
-                locations.push(location)
-            }
-        }
-    }
-    return locations
-}
-
 export function activate(): void {
+    /**
+     * When hovering a string ("foo"/'foo'), display a tooltip
+     */
     sourcegraph.languages.registerHoverProvider(['*'], {
         provideHover: (document, position) => {
             const hoveredString = stringAtPosition(document.text, position)
@@ -104,6 +26,14 @@ export function activate(): void {
         },
     })
 
+    /**
+     * When requested to provide references for a hovered string,
+     * find references to the string (as "foo"/'foo').
+     *
+     * Search is conducted:
+     * - across all repositories when using a private Sourcegraph instance
+     * - on the current repository when using the public Sourcegraph instance
+     */
     sourcegraph.languages.registerReferenceProvider(['*'], {
         provideReferences: async (document, position) => {
             const hoveredString = stringAtPosition(document.text, position)
@@ -113,9 +43,8 @@ export function activate(): void {
                 return null
             }
 
-            // @todo: check if the instance is private (using sourcegraph.configuration?)
-            const isPrivateInstance = false
-            if (isPrivateInstance) {
+            const privateInstance = await isPrivateInstance()
+            if (privateInstance) {
                 return findStringReferences(hoveredString.value)
             } else {
                 // If no private instance is setup,
