@@ -20,3 +20,45 @@ export function parseUri(uri: string): { repo: string; version: string; path: st
         path: path,
     }
 }
+
+export interface StringAtPositionResult {
+    value: string
+    position: {
+        line: number
+        start: number
+        end: number
+    }
+}
+
+export const stringAtPosition = (
+    text: string,
+    position: { line: number; character: number }
+): StringAtPositionResult | null => {
+    const line = text.split(`\n`)[position.line]
+    let quote = null
+    let stringEnd = -1
+    for (let i = position.character; i < line.length; i++) {
+        if (line[i] === '"' || line[i] === "'") {
+            quote = line[i]
+            stringEnd = i
+            break
+        }
+    }
+    if (!quote) {
+        return null
+    }
+    for (let i = position.character - 1; i >= 0; i--) {
+        if (line[i] === quote) {
+            const stringStart = i + 1
+            return {
+                value: line.slice(stringStart, stringEnd),
+                position: {
+                    line: position.line,
+                    start: stringStart,
+                    end: stringEnd,
+                },
+            }
+        }
+    }
+    return null
+}

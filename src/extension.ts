@@ -1,51 +1,14 @@
 import 'babel-polyfill'
 import * as sourcegraph from 'sourcegraph'
-import { parseUri } from './util'
+import { parseUri, stringAtPosition } from './util'
 
-interface StringAtPositionResult {
-    value: string
-    position: {
-        line: number
-        start: number
-        end: number
+const queryVariables = (s: string, repo?: string): { query: string } => {
+    const vars = [`(\\"${s}\\"|'${s}')`]
+    if (repo) {
+        vars.push(`r:${repo}`)
     }
-}
-
-export const stringAtPosition = (text: string, position: sourcegraph.Position): StringAtPositionResult | null => {
-    const line = text.split(`\n`)[position.line]
-    let quote = null
-    let stringEnd = -1
-    for (let i = position.character; i < line.length; i++) {
-        if (line[i] === '"' || line[i] === "'") {
-            quote = line[i]
-            stringEnd = i
-            break
-        }
-    }
-    if (!quote) {
-        return null
-    }
-    for (let i = position.character - 1; i >= 0; i--) {
-        if (line[i] === quote) {
-            const stringStart = i + 1
-            return {
-                value: line.slice(stringStart, stringEnd),
-                position: {
-                    line: position.line,
-                    start: stringStart,
-                    end: stringEnd,
-                },
-            }
-        }
-    }
-    return null
-}
-
-const getQueryVars = (s: string, repo?: string): { query: string } => {
-    const re = `(\\"${s}\\"|'${s}')` // avoid searching for "query' / 'query"
-    const repositoryFilter = repo ? ` r:${repo}` : ''
     return {
-        query: re + repositoryFilter,
+        query: vars.join(' '),
     }
 }
 
@@ -102,7 +65,7 @@ async function findStringReferences(s: string, repo?: string): Promise<sourcegra
     const response: ResponseObject = await sourcegraph.commands.executeCommand(
         'queryGraphQL',
         GRAPHQL_QUERY,
-        getQueryVars(s, repo)
+        queryVariables(s, repo)
     )
     const { results } = response.data.search
     const locations: sourcegraph.Location[] = []

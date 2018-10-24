@@ -21,56 +21,7 @@ intercept(
 )
 
 import * as assert from 'assert'
-import { stringAtPosition, activate } from './extension'
-
-describe('stringAtPosition', () => {
-    it('should find a single-quoted hovered string', () => {
-        const txt = ['the quick brown fox', "jumped 'over'", 'the lazy dog'].join('\n')
-        assert.deepEqual(
-            {
-                position: {
-                    end: 12,
-                    line: 1,
-                    start: 8,
-                },
-                value: 'over',
-            },
-            stringAtPosition(txt, {
-                line: 1,
-                character: 9,
-            } as any)
-        )
-    })
-
-    it('should find a double-quoted hovered string', () => {
-        const txt = ['the quick brown fox', 'jumped "over"', 'the lazy dog'].join('\n')
-        assert.deepEqual(
-            {
-                position: {
-                    end: 12,
-                    line: 1,
-                    start: 8,
-                },
-                value: 'over',
-            },
-            stringAtPosition(txt, {
-                line: 1,
-                character: 9,
-            } as any)
-        )
-    })
-
-    it('should return null in case of mismatched quotes', () => {
-        const txt = ['the quick brown fox', `jumped "over'`, 'the lazy dog'].join('\n')
-        assert.strictEqual(
-            null,
-            stringAtPosition(txt, {
-                line: 1,
-                character: 9,
-            } as any)
-        )
-    })
-})
+import { activate } from './extension'
 
 describe('extension lifetime', () => {
     let hoverProvider: Function | null = null
