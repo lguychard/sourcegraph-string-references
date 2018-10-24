@@ -4,7 +4,7 @@ import { stringAtPosition } from './util'
 describe('stringAtPosition', () => {
     it('should find a single-quoted hovered string', () => {
         const txt = ['the quick brown fox', "jumped 'over'", 'the lazy dog'].join('\n')
-        assert.deepEqual(
+        assert.deepStrictEqual(
             {
                 position: {
                     end: 12,
@@ -22,7 +22,7 @@ describe('stringAtPosition', () => {
 
     it('should find a double-quoted hovered string', () => {
         const txt = ['the quick brown fox', 'jumped "over"', 'the lazy dog'].join('\n')
-        assert.deepEqual(
+        assert.deepStrictEqual(
             {
                 position: {
                     end: 12,
@@ -40,7 +40,7 @@ describe('stringAtPosition', () => {
 
     it('should return null in case of mismatched quotes', () => {
         const txt = ['the quick brown fox', `jumped "over'`, 'the lazy dog'].join('\n')
-        assert.strictEqual(
+        assert.deepStrictEqual(
             null,
             stringAtPosition(txt, {
                 line: 1,

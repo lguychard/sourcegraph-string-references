@@ -69,18 +69,18 @@ async function findStringReferences(s: string, repo?: string): Promise<sourcegra
     )
     const { results } = response.data.search
     const locations: sourcegraph.Location[] = []
-    results.results.forEach(({ file, repository, lineMatches }) => {
-        lineMatches.forEach(({ lineNumber, offsetAndLengths }) => {
-            offsetAndLengths.forEach(([offset, length]) => {
+    for (const { file, repository, lineMatches } of results.results) {
+        for (const { lineNumber, offsetAndLengths } of lineMatches) {
+            for (const [offset, length] of offsetAndLengths) {
                 const start = new sourcegraph.Position(lineNumber, offset)
                 const end = new sourcegraph.Position(lineNumber, offset + length)
                 const range = new sourcegraph.Range(start, end)
                 const uri = new sourcegraph.URI(`git://${repository.name}?${file.commit.oid}#${file.path}`)
                 const location = new sourcegraph.Location(uri, range)
                 locations.push(location)
-            })
-        })
-    })
+            }
+        }
+    }
     return locations
 }
 

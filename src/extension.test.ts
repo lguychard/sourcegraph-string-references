@@ -1,4 +1,5 @@
 import * as sinon from 'sinon'
+import * as sourcegraph from 'sourcegraph'
 
 const SOURCEGRAPH = {
     languages: {
@@ -24,8 +25,7 @@ import * as assert from 'assert'
 import { activate } from './extension'
 
 describe('extension lifetime', () => {
-    let hoverProvider: Function | null = null
-    // let referenceProvider: Function | null = null
+    let hoverProvider: null | sourcegraph.HoverProvider = null
 
     context('on activation', () => {
         before(() => activate())
@@ -35,7 +35,7 @@ describe('extension lifetime', () => {
             const [selector, provider] = SOURCEGRAPH.languages.registerHoverProvider.getCalls()[0].args
             assert.strictEqual(typeof provider.provideHover, 'function')
             assert.deepStrictEqual(selector, ['*'])
-            hoverProvider = provider.provideHover
+            hoverProvider = provider
         })
 
         it('should register a reference provider', () => {
@@ -43,7 +43,6 @@ describe('extension lifetime', () => {
             const [selector, provider] = SOURCEGRAPH.languages.registerReferenceProvider.getCalls()[0].args
             assert.strictEqual(typeof provider.provideReferences, 'function')
             assert.deepStrictEqual(selector, ['*'])
-            // referenceProvider = provider.provideReferences
         })
     })
     context('on hover', () => {
@@ -51,17 +50,17 @@ describe('extension lifetime', () => {
             if (!hoverProvider) {
                 throw new Error('hoverProvider not set')
             }
-            const document = {
+            const document: any = {
                 text: `the quick brown fox
                 jumped 'over'
                 the lazy dog`,
             }
-            const position = {
+            const position: any = {
                 line: 1,
                 character: 27,
             }
-            const hover = hoverProvider(document, position)
-            assert.deepStrictEqual(hover, {
+            const hover = hoverProvider.provideHover(document, position)
+            assert.deepEqual(hover, {
                 contents: {
                     value: '**string literal** `"over"`',
                     kind: 'markdown',

@@ -1,4 +1,6 @@
-# Sourcegraph String References Extension [![travis][travis-image]][travis-url] [![npm][npm-image]][npm-url]
+# Sourcegraph String References Extension
+
+[![travis][travis-image]][travis-url] [![npm][npm-image]][npm-url]
 
 [travis-image]: https://img.shields.io/travis/lguychard/sourcegraph-string-references/master.svg
 [travis-url]: https://travis-ci.org/lguychard/sourcegraph-string-references

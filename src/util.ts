@@ -17,7 +17,7 @@ export function parseUri(uri: string): { repo: string; version: string; path: st
     return {
         repo: repoRevPath.substring(0, i),
         version: revPath.substring(0, j),
-        path: path,
+        path,
     }
 }
 
