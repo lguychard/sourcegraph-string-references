@@ -36,27 +36,28 @@ export const stringAtPosition = (
 ): StringAtPositionResult | null => {
     const line = text.split(`\n`)[position.line]
     let quote = null
-    let stringEnd = -1
-    for (let i = position.character; i < line.length; i++) {
-        if (line[i] === '"' || line[i] === "'") {
-            quote = line[i]
-            stringEnd = i
-            break
+    let start = -1
+    for (let i = 0; i < line.length; i++) {
+        if (!quote && i > position.character) {
+            return null
         }
-    }
-    if (!quote) {
-        return null
-    }
-    for (let i = position.character - 1; i >= 0; i--) {
-        if (line[i] === quote) {
-            const stringStart = i + 1
-            return {
-                value: line.slice(stringStart, stringEnd),
-                position: {
-                    line: position.line,
-                    start: stringStart,
-                    end: stringEnd,
-                },
+        if (!quote && (line[i] === '"' || line[i] === "'")) {
+            quote = line[i]
+            start = i + 1
+            continue
+        }
+        if (line[i] === quote && line[i - 1] !== '\\') {
+            if (i >= position.character) {
+                return {
+                    value: line.slice(start, i),
+                    position: {
+                        line: position.line,
+                        start,
+                        end: i,
+                    },
+                }
+            } else {
+                quote = null
             }
         }
     }
