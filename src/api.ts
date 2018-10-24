@@ -5,7 +5,7 @@ function queryGraphQL<T>(query: string, variables: {}): Promise<T> {
 }
 
 const queryVariables = (s: string, repo?: string): { query: string } => {
-    const vars = [`(\\"${s}\\"|'${s}')`]
+    const vars = [`/(\\"${s}\\"|'${s}')/`]
     if (repo) {
         vars.push(`r:${repo}`)
     }
