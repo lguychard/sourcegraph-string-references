@@ -5,7 +5,7 @@ import { parseUri, stringAtPosition } from './util'
 
 export function activate(): void {
     /**
-     * When hovering a string ("foo"/'foo'), display a tooltip
+     * When hovering a string ("foo"/'foo'/`foo`), display a tooltip
      */
     sourcegraph.languages.registerHoverProvider(['*'], {
         provideHover: (document, position) => {
@@ -28,7 +28,7 @@ export function activate(): void {
 
     /**
      * When requested to provide references for a hovered string,
-     * find references to the string (as "foo"/'foo').
+     * find references to the string (as "foo"/'foo'/`foo`).
      *
      * Search is conducted:
      * - across all repositories when using a private Sourcegraph instance

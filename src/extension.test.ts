@@ -127,7 +127,7 @@ describe('extension lifetime', () => {
                 const [method, query, variables] = request!.args
                 assert.equal(method, 'queryGraphQL')
                 assert(query.indexOf('search') > -1)
-                assert.equal(variables.query, '/(\\"over\\"|\'over\')/')
+                assert.equal(variables.query, '/(\\"over\\"|\'over\'|`over`)/')
             })
 
             it('should return a list of locations')
