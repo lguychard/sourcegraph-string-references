@@ -1,14 +1,10 @@
 {
-  "name": "sourcegraph-string-references",
-  "version": "1.0.30",
-  "description": "A Sourcegraph extension allowing to find references to a string literal",
+  "name": "sourcegraph-custom-entities",
+  "version": "1.1.5",
+  "description": "A Sourcegraph extension allowing to find custom entities",
   "main": "dist/extension.js",
-  "title": "String Reference Finder",
+  "title": "Custom Entities",
   "publisher": "lguychard",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/lguychard/sourcegraph-string-references"
-  },
   "activationEvents": [
     "*"
   ],
@@ -18,7 +14,7 @@
     "prettier": "prettier '**/*.{js?(on),ts}' --write --list-different",
     "semantic-release": "semantic-release",
     "sourcegraph:prepublish": "parcel build --out-file dist/extension.js src/extension.ts",
-    "publish": "src extensions publish -extension-id lguychard/string-references"
+    "publish": "src extensions publish -extension-id lguychard/custom-entities"
   },
   "commitlint": {
     "extends": [

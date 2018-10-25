@@ -1,3 +1,6 @@
+import * as sourcegraph from 'sourcegraph'
+import { Entity } from './types'
+
 // from https://github.com/sourcegraph/sourcegraph-basic-code-intel/blob/7f1a7a9f8588f80a2eb4991f61f2d5ece4ea17c9/src/handler.ts#L87
 export function parseUri(uri: string): { repo: string; version: string; path: string } {
     if (!uri.startsWith('git://')) {
@@ -64,4 +67,68 @@ export const stringAtPosition = (
         }
     }
     return null
+}
+
+interface CaptureEntityResult {
+    range: sourcegraph.Range
+    groups: string[]
+}
+
+function captureEntity(line: string, pattern: string, position: sourcegraph.Position): CaptureEntityResult | null {
+    const re = new RegExp(pattern)
+    const match = line.match(re)
+    if (match === null) {
+        return null
+    }
+    const start = line.indexOf(match[0])
+    const end = start + match[0].length
+    if (start > position.character || end < position.character) {
+        return null
+    } else {
+        return {
+            range: new sourcegraph.Range(
+                new sourcegraph.Position(position.line, start),
+                new sourcegraph.Position(position.line, end)
+            ),
+            groups: match,
+        }
+    }
+}
+
+interface EntityAtPositionResult extends CaptureEntityResult {
+    entity: Entity
+}
+
+export function getEntityAtPosition(
+    entities: Entity[],
+    text: string,
+    position: sourcegraph.Position
+): EntityAtPositionResult | null {
+    const line = text.split('\n')[position.line]
+    for (const entity of entities) {
+        const allPatterns = [...entity.definitions, ...entity.references, ...entity.implementations]
+        for (const { capture } of allPatterns) {
+            if (!capture) {
+                continue
+            }
+            const captureResult = captureEntity(line, capture, position)
+            if (captureResult) {
+                return {
+                    ...captureResult,
+                    entity,
+                }
+            }
+        }
+    }
+    return null
+}
+
+export function interpolate(s: string, groups: string[]): string {
+    console.log(`Ìnterpolating '${s}' with groups ${JSON.stringify(groups)}`)
+    let interpolated = s
+    for (let i = 1; i < groups.length; i++) {
+        const placeholder = `$${i}`
+        interpolated = interpolated.replace(placeholder, groups[i])
+    }
+    return interpolated
 }

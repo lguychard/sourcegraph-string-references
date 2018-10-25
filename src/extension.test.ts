@@ -1,4 +1,4 @@
-import * as sinon from 'sinon'
+/* import * as sinon from 'sinon'
 import * as sourcegraph from 'sourcegraph'
 
 const API_REQUESTS: { args: any[]; resolve: (...args: any[]) => void }[] = []
@@ -140,3 +140,4 @@ describe('extension lifetime', () => {
         })
     })
 })
+ */
