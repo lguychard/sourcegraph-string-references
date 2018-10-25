@@ -30,6 +30,8 @@ export interface StringAtPositionResult {
     }
 }
 
+const isQuote = (s: string) => s === '"' || s === "'" || s === '`'
+
 export const stringAtPosition = (
     text: string,
     position: { line: number; character: number }
@@ -41,7 +43,7 @@ export const stringAtPosition = (
         if (!quote && i > position.character) {
             return null
         }
-        if (!quote && (line[i] === '"' || line[i] === "'")) {
+        if (!quote && isQuote(line[i])) {
             quote = line[i]
             start = i + 1
             continue

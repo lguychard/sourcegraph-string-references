@@ -95,4 +95,15 @@ describe('stringAtPosition', () => {
             } as any)
         )
     })
+
+    it('should find a backtick-quoted string', () => {
+        const txt = ['the quick brown fox', 'jumped `over`', 'the lazy dog'].join('\n')
+        assert.deepStrictEqual(
+            { value: 'over', position: { line: 1, start: 8, end: 12 } },
+            stringAtPosition(txt, {
+                line: 1,
+                character: 11,
+            } as any)
+        )
+    })
 })
